@@ -1,0 +1,16 @@
+html,
+body {
+  height: 100%;
+}
+
+body {
+}
+
+canvas {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-left: -400px;
+  margin-top: -300px;
+  border: 1px solid gray;
+}
