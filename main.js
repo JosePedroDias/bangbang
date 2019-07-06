@@ -1,173 +1,83 @@
-function loadImage(url) {
-  return new Promise((resolve, reject) => {
-    const el = document.createElement('img');
+const W = 800;
+const H = 600;
 
-    el.addEventListener('load', () => {
-      resolve(el);
-    });
-    el.addEventListener('error', (err) => {
-      reject(err);
-    });
+const GRASS_CLR = '#291';
+const IMAGE_KEY_RGX = /\/(.+)\.png/;
+const IMAGE_NAMES = [/*'map',*/ 'char'];
 
-    el.src = url;
-  });
-}
+let main;
+(function() {
+  const mainCanvas = document.querySelector('canvas');
+  main = canvasToSprite(mainCanvas);
+})();
 
-const canvasEl = document.querySelector('canvas');
-const ctx = canvasEl.getContext('2d');
+function generateMap() {
+  const el = createCanvas(W, H);
+  const ctx = cvsCtx(el);
+  ctx.fillStyle = GRASS_CLR;
+  let y = H * 0.6;
+  let x = 0;
+  const y0 = y;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  while (x < W) {
+    x += 10;
+    y += Math.random() * 40 - 20;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(x, H);
+  ctx.lineTo(0, H);
+  ctx.fill();
 
-let t = 0;
-let prevT = -1 / 60 / 1000;
-
-const imageNames = ['char', 'map'];
-const loadedImages = {};
-const sprites = [
-  {
+  return {
+    el,
+    ctx,
     pos: [0, 0],
-    sprite: 'map'
-  },
-  {
-    pos: [50, 50],
-    sprite: 'char'
-  }
-];
-
-function draw(dt) {
-  ctx.clearRect(0, 0, 800, 600);
-  sprites.forEach((s) => {
-    ctx.drawImage(s.el, s.pos[0], s.pos[1]);
-  });
+    dims: [W, H]
+  };
 }
 
-function onUpdate(dt) {
-  sprites[1].pos[1] += t * 0.4;
-  const hits = collide(sprites[0], sprites[1]);
+loadImages(
+  IMAGE_NAMES.map((fn) => `sprites/${fn}.png`),
+  (url) => IMAGE_KEY_RGX.exec(url)[1],
+  imgToCanvas
+).then((o) => {
+  //const map = canvasToSprite(o.map);
+  const map = generateMap();
+  const char = canvasToSprite(o.char);
 
-  // stop at collision
-  /*if (hits.length) {
-    sprites[1].pos[1] -= t * 0.4;
-  }*/
+  const sprites = [map, char];
 
-  // carve collision out of the map
-  if (hits.length) {
-    hits.forEach((pos) => {
-      clearPixel(sprites[0], pos);
-      //setPixel(sprites[0], pos, 'red'); // TODO appearing black?
+  function draw() {
+    main.ctx.clearRect(0, 0, W, H);
+    sprites.forEach((s) => {
+      main.ctx.drawImage(s.el, s.pos[0], s.pos[1]);
     });
   }
-}
 
-function onFrame(dt) {
-  draw(dt);
-  onUpdate(dt);
-}
+  function onUpdate(t, dt, keysDown) {
+    //console.log(keysDown); // 37 39, 38 40
 
-function collide(s1, s2) {
-  const [w, h] = s2.dims;
-  const [x, y] = s2.pos;
+    const dx = (keysDown[37] && -1) || (keysDown[39] && 1) || 0;
 
-  // assumes map to be s1 at 0, 0 origin
-  const hits = [];
-  const iData1 = s1.ctx.getImageData(x, y, w, h);
-  const d1 = iData1.data;
-  const iData2 = s2.ctx.getImageData(0, 0, w, h);
-  const d2 = iData2.data;
+    char.pos[0] += dx;
+    char.pos[1] += t * 0.4;
+    const hits = collide(map, char, true);
 
-  for (let yi = 0; yi < h; ++yi) {
-    for (let xi = 0; xi < w; ++xi) {
-      const i0 = (yi * w + xi) * 4 + 3;
-      const a = d1[i0];
-      const b = d2[i0];
-      if (a & b) {
-        //console.log(`pos: [${xi}, ${yi}] | a: ${a} | b: ${b}`);
-        hits.push([xi + x, yi + y]);
-      }
+    if (hits.length) {
+      char.pos[1] -= t * 0.4;
     }
   }
 
-  return hits;
-}
+  function onFrame({ t, dt, keysDown }) {
+    draw();
+    onUpdate(t, dt, keysDown);
+  }
 
-function carveRectHole(s, [x, y], [w, h]) {
-  s.ctx.clearRect(x - w / 2, y - h / 2, w, h);
-}
+  const RELEVANT_KEYS = [K_LEFT, K_RIGHT, K_UP, K_DOWN];
+  function stopKey(ev) {
+    return RELEVANT_KEYS.indexOf(ev.keyCode) !== -1;
+  }
 
-function fillRect(s, [x, y], [w, h], clr) {
-  s.ctx.fillStyle = clr;
-  s.ctx.fillRect(x - w / 2, y - h / 2, w, h);
-}
-
-function carveCircHole(s, [x, y], r) {
-  s.ctx.globalCompositeOperation = 'destination-out';
-  s.ctx.beginPath();
-  s.ctx.arc(x, y, r, 0, 2 * Math.PI, false);
-  s.ctx.fill();
-  s.ctx.globalCompositeOperation = 'source-over';
-}
-
-function fillCirc(s, [x, y], r, clr) {
-  s.ctx.fillStyle = clr;
-  s.ctx.beginPath();
-  s.ctx.arc(x, y, r, 0, 2 * Math.PI, false);
-  s.ctx.fill();
-}
-
-function setPixel(s, [x, y], clr) {
-  s.fillStyle = clr;
-  s.ctx.fillRect(x, y, 1, 1);
-}
-
-function clearPixel(s, [x, y]) {
-  s.ctx.clearRect(x, y, 1, 1);
-}
-
-function boot() {
-  Promise.all([
-    loadImage('sprites/char.png'),
-    loadImage('sprites/map.png')
-  ]).then((imageEls) => {
-    imageNames.forEach((key, i) => {
-      const imgEl = imageEls[i];
-      const canvasEl = document.createElement('canvas');
-      canvasEl.width = imgEl.width;
-      canvasEl.height = imgEl.height;
-      const ctx = canvasEl.getContext('2d');
-      ctx.drawImage(imgEl, 0, 0);
-      //console.log(key, imgEl.width, imgEl.height);
-      loadedImages[key] = { el: canvasEl, ctx };
-    });
-
-    sprites.forEach((s) => {
-      const li = loadedImages[s.sprite];
-      s.ctx = li.ctx;
-      s.el = li.el;
-      s.dims = [s.el.width, s.el.height];
-    });
-
-    /*
-      carveRectHole(sprites[0], [200, 500], [40, 20]);
-      carveCircHole(sprites[0], [300, 500], 20);
-      carveRectHole(sprites[0], [400, 500], [40, 20]);
-      carveCircHole(sprites[0], [500, 500], 20);
-
-      fillRect(sprites[0], [200, 500], [32, 12], 'red');
-      fillCirc(sprites[0], [300, 500], 16, 'blue');
-      fillRect(sprites[0], [400, 500], [32, 12], 'yellow');
-      fillCirc(sprites[0], [500, 500], 16, 'purple');
-      */
-
-    //collide(sprites[0], sprites[1]);
-
-    window.requestAnimationFrame(step);
-  });
-}
-
-function step(ms) {
-  prevT = t;
-  t = ms / 1000;
-  const dt = t - prevT;
-  onFrame(dt);
-  window.requestAnimationFrame(step);
-}
-
-boot();
+  gameLoop({ onFrame, stopKey });
+});

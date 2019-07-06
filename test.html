@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>bangbang tests</title>
+    <link rel="stylesheet" href="main.css" />
+  </head>
+  <body>
+    <h1></h1>
+
+    <canvas width="800" height="600"></canvas>
+    <script src="lib.js"></script>
+    <!-- loading shapes collision gameLoop -->
+
+    <script>
+      const TESTS = 'loading shapes collision gameLoop'.split(' ');
+      TESTS.forEach((t) => {
+        const aEl = document.createElement('a');
+        aEl.appendChild(document.createTextNode(` [${t}] `));
+        aEl.href = 'test.html?t=' + t;
+        document.body.appendChild(aEl);
+      });
+
+      let test = /\?t\=(.+)/.exec(location.href);
+      if (!test) {
+        location.href = 'test.html?t=' + TESTS[0];
+      } else {
+        test = test[1];
+        document.querySelector('h1').innerHTML = test;
+        loadScript(`tests/${test}.js`);
+      }
+    </script>
+  </body>
+</html>
