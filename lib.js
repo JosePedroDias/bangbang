@@ -97,6 +97,9 @@ function fillCirc(s, [x, y], r, clr) {
   s.ctx.fill();
 }
 
+const D2R = Math.PI / 180;
+const R2D = 180 / Math.PI;
+
 // bresenham algo
 
 function line(x0, y0, x1, y1, onPixel) {
@@ -175,7 +178,8 @@ function canvasToSprite(el) {
     el,
     ctx: cvsCtx(el),
     dims: [el.width, el.height],
-    pos: [0, 0]
+    pos: [0, 0],
+    origin: [0, 0]
   };
 }
 
