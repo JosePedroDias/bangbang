@@ -3,7 +3,7 @@ const H = 600;
 
 const GRASS_CLR = '#291';
 const IMAGE_KEY_RGX = /\/(.+)\.png/;
-const IMAGE_NAMES = [/*'map',*/ 'char'];
+const IMAGE_NAMES = []; //'map', 'char'];
 
 let main;
 (function() {
@@ -38,24 +38,29 @@ function generateMap() {
   };
 }
 
-function generateCannon() {
+function generateCannon(clr, clr2) {
   const w = 64;
   const R = 16;
   const r = 8;
-  const clr = '#a00';
+
   const base = canvasToSprite(createCanvas(w, w));
-  const cannon = canvasToSprite(createCanvas(w, w));
+  base.dims = [w, w];
+  base.origin = [w / 2, w / 2];
   base.ctx.fillStyle = clr;
   base.ctx.fillRect(w / 2 - R, w / 2, R * 2, w / 2);
   fillCirc(base, [w / 2, w / 2], R, clr);
-  cannon.ctx.fillStyle = clr;
-  base.ctx.fillRect(w / 2, w / 2 - r, w / 2, r * 2);
-  base.origin = [w / 2, w / 2];
+
+  const cannon = canvasToSprite(createCanvas(w, w));
+  cannon.dims = [w, w];
   cannon.origin = [w / 2, w / 2];
-  cannon.angle = 0;
+  cannon.ctx.fillStyle = clr2;
+  cannon.ctx.fillRect(w / 2, w / 2 - r, w / 2, r * 2);
+  fillCirc(cannon, [w / 2, w / 2], r, clr2);
+
   const pos = [120, 60];
   base.pos = pos;
   cannon.pos = pos;
+
   return { base, cannon };
 }
 
@@ -77,9 +82,8 @@ loadImages(
 ).then((o) => {
   //const map = canvasToSprite(o.map);
   const map = generateMap();
-  const char = canvasToSprite(o.char);
 
-  const sprites = [map, char];
+  const sprites = [map];
 
   function findFloor(x) {
     let y = 0;
@@ -92,20 +96,24 @@ loadImages(
     return y;
   }
 
+  const dx = 90;
+
   {
-    const { base, cannon } = generateCannon();
+    const { base, cannon } = generateCannon('#a00', '#800');
     sprites.push(base);
     sprites.push(cannon);
-    base.pos[0] = 150;
-    base.pos[1] = findFloor(150) - 30;
+    base.pos[0] = dx;
+    base.pos[1] = findFloor(dx) - 30;
+    cannon.angle = 0;
   }
 
   {
-    const { base, cannon } = generateCannon();
+    const { base, cannon } = generateCannon('#00a', '#008');
     sprites.push(base);
     sprites.push(cannon);
-    base.pos[0] = W - 150;
-    base.pos[1] = findFloor(W - 150) - 30;
+    base.pos[0] = W - dx;
+    base.pos[1] = findFloor(W - dx) - 30;
+    cannon.angle = 180;
   }
 
   const ball = generateBall();
@@ -113,21 +121,31 @@ loadImages(
   sprites.push(ball);
 
   function draw() {
-    main.ctx.clearRect(0, 0, W, H);
+    const c = main.ctx;
+    c.clearRect(0, 0, W, H);
     sprites.forEach((s, i) => {
       if (isFinite(s.angle)) {
         //console.log(i, s.angle);
-        main.ctx.save();
-        main.ctx.rotate(D2R * (s.angle || 0));
-        main.ctx.translate(s.pos[0] - s.origin[0], s.pos[1] - s.origin[1]);
-        main.ctx.drawImage(s.el, 0, 0);
-        main.ctx.restore();
-      } else {
-        main.ctx.drawImage(
+        c.save();
+
+        c.translate(s.pos[0], s.pos[1]);
+        c.rotate(D2R * (s.angle || 0));
+        //c.rotate(2);
+        c.drawImage(
           s.el,
-          s.pos[0] - s.origin[0],
-          s.pos[1] - s.origin[1]
+          0,
+          0,
+          s.dims[0],
+          s.dims[1],
+          -s.origin[0],
+          -s.origin[1],
+          s.dims[0],
+          s.dims[1]
         );
+
+        c.restore();
+      } else {
+        c.drawImage(s.el, s.pos[0] - s.origin[0], s.pos[1] - s.origin[1]);
       }
     });
   }
@@ -135,18 +153,21 @@ loadImages(
   function onUpdate(t, dt, keysDown) {
     //console.log(keysDown); // 37 39, 38 40
 
-    //sprites[3].angle += 1;
+    const cannons = [sprites[2], sprites[4]];
 
-    const dx = (keysDown[K_LEFT] && -1) || (keysDown[K_RIGHT] && 1) || 0;
+    const dr0 = (keysDown[K_LEFT] && -1) || (keysDown[K_RIGHT] && 1) || 0;
+    const dr1 = (keysDown[K_UP] && -1) || (keysDown[K_DOWN] && 1) || 0;
 
-    char.pos[0] += dx;
-    char.pos[1] += t * 0.4;
-    //char.angle += 2;
-    const hits = collide(map, char, true);
+    //if (dr0) console.log('dr0', dr0);
+    //if (dr1) console.log('dr1', dr1);
 
+    cannons[0].angle += dr0 * 2;
+    cannons[1].angle -= dr1 * 2;
+
+    /*const hits = collide(map, char, true);
     if (hits.length) {
       char.pos[1] -= t * 0.4;
-    }
+    }*/
   }
 
   function onFrame({ t, dt, keysDown }) {

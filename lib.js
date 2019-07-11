@@ -126,9 +126,12 @@ function line(x0, y0, x1, y1, onPixel) {
 // game loop
 
 const K_LEFT = 37;
-const K_RIGHT = 37;
-const K_UP = 37;
-const K_DOWN = 37;
+const K_RIGHT = 39;
+const K_UP = 38;
+const K_DOWN = 40;
+const K_SPACE = 32;
+const K_ENTER = 13;
+const K_ESCAPE = 27;
 
 function gameLoop({ onFrame = noop, stopKey = noop }) {
   let t = 0;
