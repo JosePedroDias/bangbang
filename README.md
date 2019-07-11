@@ -18,6 +18,13 @@ a small js / canvas game to attempt to create 2D maps which can be carved as in 
         rotate CW:  D
         fire:       S
 
+## TODO
+
+- [ ] HUD with power bars
+- [ ] one turn each - display who is playing in HUD
+- [ ] trigger proximity to cannon as point for playing team
+- [ ] new game
+
 ## reference
 
 - [canvas cheat sheet](https://simon.html5.org/dump/html5-canvas-cheat-sheet.html)

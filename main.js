@@ -38,6 +38,26 @@ function generateMap() {
   };
 }
 
+function generateSky() {
+  const el = createCanvas(W, H);
+  const ctx = cvsCtx(el);
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#44c');
+  grad.addColorStop(1, '#fff');
+
+  // Fill with gradient
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  return {
+    el,
+    ctx,
+    pos: [0, 0],
+    dims: [W, H],
+    origin: [0, 0]
+  };
+}
+
 function generateCannon(clr, clr2) {
   const w = 64;
   const R = 16;
@@ -80,10 +100,10 @@ loadImages(
   (url) => IMAGE_KEY_RGX.exec(url)[1],
   imgToCanvas
 ).then((o) => {
-  //const map = canvasToSprite(o.map);
+  const sky = generateSky();
   const map = generateMap();
 
-  const sprites = [map];
+  const sprites = [sky, map];
 
   function findFloor(x) {
     let y = 0;
@@ -131,7 +151,6 @@ loadImages(
         c.translate(s.pos[0], s.pos[1]);
         c.rotate(D2R * (s.angle || 0));
         c.drawImage(
-          //console.log(i, s.angle);
           s.el,
           0,
           0,
@@ -167,10 +186,12 @@ loadImages(
     //console.log(keysDown); // 37 39, 38 40
     const dt = dt_ * TIME_MULT;
 
-    const cannons = [sprites[2], sprites[4]];
-    const ball = sprites[5];
+    const cannons = [sprites[3], sprites[5]];
+    const ball = sprites[6];
 
-    if (ball.acc[1]) {
+    const isBallFlying = ball.acc[1];
+
+    if (isBallFlying) {
       const dt2 = -0.5 * dt * dt;
 
       ball.vel[0] += ball.acc[0] * dt;
@@ -183,7 +204,8 @@ loadImages(
     const dr0 = (keysDown[P1_CCW] && -1) || (keysDown[P1_CW] && 1) || 0;
     const dr1 = (keysDown[P2_CCW] && -1) || (keysDown[P2_CW] && 1) || 0;
 
-    if (keysWentUp[P1_FIRE]) {
+    if (isBallFlying) {
+    } else if (keysWentUp[P1_FIRE]) {
       const p = powers[0] * POWER_MULT;
       ball.acc = [0, 9.8];
       ball.vel = polar([0, 0], cannons[0].angle, p);
@@ -193,7 +215,8 @@ loadImages(
       powers[0] += 1;
     }
 
-    if (keysWentUp[P2_FIRE]) {
+    if (isBallFlying) {
+    } else if (keysWentUp[P2_FIRE]) {
       const p = powers[1] * POWER_MULT;
       ball.acc = [0, 9.8];
       ball.vel = polar([0, 0], cannons[1].angle, p);
