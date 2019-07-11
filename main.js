@@ -70,7 +70,7 @@ function generateBall() {
   const r = 6;
   const clr = '#444';
   fillCirc(ball, [w / 2, w / 2], r, clr);
-  //ball.pos = [300, 200];
+  ball.pos = [-100, -100];
   ball.origin = [w / 2, w / 2];
   return ball;
 }
@@ -117,21 +117,21 @@ loadImages(
   }
 
   const ball = generateBall();
-  ball.pos = [150, 40];
+  ball.acc = [0, 0];
+  ball.vel = [0, 0];
   sprites.push(ball);
 
   function draw() {
     const c = main.ctx;
     c.clearRect(0, 0, W, H);
-    sprites.forEach((s, i) => {
+    sprites.forEach((s) => {
       if (isFinite(s.angle)) {
-        //console.log(i, s.angle);
         c.save();
 
         c.translate(s.pos[0], s.pos[1]);
         c.rotate(D2R * (s.angle || 0));
-        //c.rotate(2);
         c.drawImage(
+          //console.log(i, s.angle);
           s.el,
           0,
           0,
@@ -150,19 +150,62 @@ loadImages(
     });
   }
 
-  function onUpdate(t, dt, keysDown) {
+  let powers = [0, 0];
+
+  const P1_CCW = K_LEFT;
+  const P1_FIRE = K_SPACE;
+  const P1_CW = K_RIGHT;
+
+  const P2_CCW = K_A;
+  const P2_FIRE = K_S;
+  const P2_CW = K_D;
+
+  function onUpdate(t, dt, keysDown, keysWentUp) {
     //console.log(keysDown); // 37 39, 38 40
 
     const cannons = [sprites[2], sprites[4]];
+    const ball = sprites[5];
 
-    const dr0 = (keysDown[K_LEFT] && -1) || (keysDown[K_RIGHT] && 1) || 0;
-    const dr1 = (keysDown[K_UP] && -1) || (keysDown[K_DOWN] && 1) || 0;
+    if (ball.acc[1]) {
+      const dt2 = -0.5 * dt * dt;
+
+      ball.vel[0] += ball.acc[0] * dt;
+      ball.vel[1] += ball.acc[1] * dt;
+      ball.pos[0] += ball.vel[0] * dt + ball.acc[0] * dt2;
+      ball.pos[0] += ball.vel[1] * dt + ball.acc[1] * dt2;
+      //console.log(`${ball.pos[0].toFixed(2)} , ${ball.pos[1].toFixed(2)}`);
+    }
+
+    const dr0 = (keysDown[P1_CCW] && -1) || (keysDown[P1_CW] && 1) || 0;
+    const dr1 = (keysDown[P2_CCW] && -1) || (keysDown[P2_CW] && 1) || 0;
+
+    if (keysWentUp[P1_FIRE]) {
+      const p = powers[0] * 10;
+      //console.log(p);
+      ball.acc = [0, 9.8];
+      ball.vel = polar([0, 0], cannons[0].angle, p);
+      ball.pos = polar(cannons[0].pos, cannons[0].angle, 30);
+      powers[0] = 0;
+    } else if (keysDown[P1_FIRE]) {
+      powers[0] += 1;
+    }
+
+    if (keysWentUp[P2_FIRE]) {
+      const p = powers[1];
+      //console.log(p);
+      ball.acc = [0, 9.8];
+      ball.vel = polar([0, 0], cannons[1].angle, p);
+      ball.pos = polar(cannons[1].pos, cannons[1].angle, 30);
+      powers[1] = 0;
+    } else if (keysDown[P2_FIRE]) {
+      powers[1] += 1;
+    }
 
     //if (dr0) console.log('dr0', dr0);
     //if (dr1) console.log('dr1', dr1);
 
     cannons[0].angle += dr0 * 2;
-    cannons[1].angle -= dr1 * 2;
+    cannons[1].angle += dr1 * 2;
 
     /*const hits = collide(map, char, true);
     if (hits.length) {
@@ -170,12 +213,12 @@ loadImages(
     }*/
   }
 
-  function onFrame({ t, dt, keysDown }) {
+  function onFrame({ t, dt, keysDown, keysWentUp }) {
     draw();
-    onUpdate(t, dt, keysDown);
+    onUpdate(t, dt, keysDown, keysWentUp);
   }
 
-  const RELEVANT_KEYS = [K_LEFT, K_RIGHT, K_UP, K_DOWN];
+  const RELEVANT_KEYS = [K_LEFT, K_RIGHT, K_SPACE, K_A, K_S, K_D];
   function stopKey(ev) {
     return RELEVANT_KEYS.indexOf(ev.keyCode) !== -1;
   }
