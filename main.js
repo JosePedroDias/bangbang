@@ -152,16 +152,20 @@ loadImages(
 
   let powers = [0, 0];
 
-  const P1_CCW = K_LEFT;
-  const P1_FIRE = K_SPACE;
-  const P1_CW = K_RIGHT;
+  const P1_CCW = K_A;
+  const P1_FIRE = K_S;
+  const P1_CW = K_D;
 
-  const P2_CCW = K_A;
-  const P2_FIRE = K_S;
-  const P2_CW = K_D;
+  const P2_CCW = K_LEFT;
+  const P2_FIRE = K_SPACE;
+  const P2_CW = K_RIGHT;
 
-  function onUpdate(t, dt, keysDown, keysWentUp) {
+  const TIME_MULT = 5;
+  const POWER_MULT = 3;
+
+  function onUpdate(t, dt_, keysDown, keysWentUp) {
     //console.log(keysDown); // 37 39, 38 40
+    const dt = dt_ * TIME_MULT;
 
     const cannons = [sprites[2], sprites[4]];
     const ball = sprites[5];
@@ -172,7 +176,7 @@ loadImages(
       ball.vel[0] += ball.acc[0] * dt;
       ball.vel[1] += ball.acc[1] * dt;
       ball.pos[0] += ball.vel[0] * dt + ball.acc[0] * dt2;
-      ball.pos[0] += ball.vel[1] * dt + ball.acc[1] * dt2;
+      ball.pos[1] += ball.vel[1] * dt + ball.acc[1] * dt2;
       //console.log(`${ball.pos[0].toFixed(2)} , ${ball.pos[1].toFixed(2)}`);
     }
 
@@ -180,8 +184,7 @@ loadImages(
     const dr1 = (keysDown[P2_CCW] && -1) || (keysDown[P2_CW] && 1) || 0;
 
     if (keysWentUp[P1_FIRE]) {
-      const p = powers[0] * 10;
-      //console.log(p);
+      const p = powers[0] * POWER_MULT;
       ball.acc = [0, 9.8];
       ball.vel = polar([0, 0], cannons[0].angle, p);
       ball.pos = polar(cannons[0].pos, cannons[0].angle, 30);
@@ -191,8 +194,7 @@ loadImages(
     }
 
     if (keysWentUp[P2_FIRE]) {
-      const p = powers[1];
-      //console.log(p);
+      const p = powers[1] * POWER_MULT;
       ball.acc = [0, 9.8];
       ball.vel = polar([0, 0], cannons[1].angle, p);
       ball.pos = polar(cannons[1].pos, cannons[1].angle, 30);
@@ -201,16 +203,15 @@ loadImages(
       powers[1] += 1;
     }
 
-    //if (dr0) console.log('dr0', dr0);
-    //if (dr1) console.log('dr1', dr1);
-
     cannons[0].angle += dr0 * 2;
     cannons[1].angle += dr1 * 2;
 
-    /*const hits = collide(map, char, true);
+    const hits = collide(map, ball, true);
     if (hits.length) {
-      char.pos[1] -= t * 0.4;
-    }*/
+      carveCircHole(map, hits[0], 20);
+      ball.acc[1] = 0;
+      ball.pos[0] = -100;
+    }
   }
 
   function onFrame({ t, dt, keysDown, keysWentUp }) {
